@@ -1,386 +1,239 @@
 <template>
   <v-container>
-    <h1 class="text-h4 mb-4">Administración de Grados</h1>
-
-    <!-- Notificación (Alerta) -->
-    <v-alert
-      v-if="alert.show"
-      :type="alert.type"
-      dismissible
-      class="mb-4"
-    >
-      {{ alert.message }}
-    </v-alert>
-
-    <!-- Botón para Agregar Grado -->
-    <div class="d-flex justify-end mb-4">
-      <v-btn color="success" @click="openDialog('add')" large :loading="loading">
-        <v-icon left>mdi-plus-circle-outline</v-icon>
-        Agregar
-      </v-btn>
-    </div>
-
-    <!-- Tarjeta que contiene la Tabla de Datos -->
-    <v-card class="elevation-4">
-      <v-card-title>
-        Listado de Grados
-        <v-spacer></v-spacer>
-        <!-- Campo de búsqueda opcional -->
-        <v-text-field
-          v-model="search"
-          append-icon="mdi-magnify"
-          label="Buscar"
-          single-line
-          hide-details
-        ></v-text-field>
-      </v-card-title>
-
-      <!-- v-data-table: Muestra los registros de grados -->
-      <v-data-table
-        :headers="headers"
-        :items="grados"
-        :search="search"
-        :items-per-page="10"
-        :loading="loading"
-        loading-text="Cargando datos... Por favor, espere."
-        class="elevation-0"
-      >
-        <!-- Personalización de la columna "Acciones" -->
-        <template v-slot:item.actions="{ item }">
-          <!-- Botón de Editar -->
-          <v-btn 
-            icon 
-            color="orange darken-1" 
-            class="mr-2" 
-            @click="openDialog('edit', item)"
-            title="Editar Grado"
-          >
-            <v-icon>mdi-pencil</v-icon>
-          </v-btn>
-          <!-- Botón de Eliminar -->
-          <v-btn 
-            icon 
-            color="red" 
-            @click="openDialog('delete', item)"
-            title="Eliminar Grado"
-          >
-            <v-icon>mdi-delete</v-icon>
-          </v-btn>
-        </template>
-        
-        <!-- Mensaje de no datos -->
-        <template v-slot:no-data>
-          <v-alert :value="true" color="info" icon="mdi-alert-circle">
-            No se encontraron registros de grados.
-          </v-alert>
-        </template>
-      </v-data-table>
-    </v-card>
-
-    <!-- Diálogo (Modal) para Agregar/Editar Grado -->
     <v-dialog v-model="dialog" max-width="500px">
-      <v-card :loading="loading">
-        <v-card-title class="headline blue darken-2 white--text">
-          {{ formTitle }}
-        </v-card-title>
+      <template v-slot:activator="{ props }">
+        <v-toolbar flat>
+          <v-toolbar-title>Mantenimiento de Grados</v-toolbar-title>
+          <v-divider class="mx-4" inset vertical></v-divider>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" dark class="mb-2" v-bind="props">
+            Nuevo Grado
+          </v-btn>
+        </v-toolbar>
+      </template>
 
+      <v-card>
+        <v-card-title>
+          <span class="text-h5">{{ formTitle }}</span>
+        </v-card-title>
         <v-card-text class="pt-4">
           <v-form ref="form" v-model="valid" lazy-validation>
-            <!-- Año Lectivo (INT) -->
-            <v-text-field
-              v-model.number="editedItem.año_lectivo"
+            <v-select
+              v-model="editedItem.anio_lectivo"
+              :items="[2023, 2024, 2025]"
               label="Año Lectivo"
-              :rules="[v => !!v || 'El año lectivo es requerido']"
-              type="number"
-            ></v-text-field>
+              :rules="[v => !!v || 'Año Lectivo es obligatorio']"
+              required
+            ></v-select>
 
-            <!-- Grado (VARCHAR) -->
             <v-text-field
               v-model="editedItem.grado"
               label="Nombre del Grado"
-              :rules="[v => !!v || 'El nombre del grado es requerido']"
+              :rules="[v => !!v || 'Grado es obligatorio']"
+              required
             ></v-text-field>
 
-            <!-- Profesor ID (Simulación de Dropdown/Select) -->
-            <!-- Nota: En una app real, la lista de profesores se traería por API, 
-                 aquí se simula para la interfaz. -->
             <v-select
               v-model="editedItem.profesor_id"
-              :items="profesores"
-              item-text="nombre_completo"
+              :items="profesoresItems"
+              item-title="nombre_completo"
               item-value="id_profesor"
-              label="Profesor Guía (ID)"
-              :rules="[v => !!v || 'El profesor guía es requerido']"
+              label="Profesor Encargado"
+              :rules="[v => !!v || 'Profesor Encargado es obligatorio']"
+              required
             ></v-select>
 
-            <!-- Especialidad ID (Simulación de Dropdown/Select) -->
             <v-select
               v-model="editedItem.id_especialidad"
-              :items="especialidades"
-              item-text="nombre_especialidad"
+              :items="especialidadesItems"
+              item-title="nombre_especialidad"
               item-value="id_especialidad"
-              label="Especialidad (ID)"
-              :rules="[v => !!v || 'La especialidad es requerida']"
+              label="Especialidad (Opcional)"
+              clearable
             ></v-select>
+
+            <v-alert v-if="errorMessage" type="error" class="mt-3" density="compact">
+              {{ errorMessage }}
+            </v-alert>
           </v-form>
         </v-card-text>
 
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="red darken-1" text @click="closeDialog" :disabled="loading">
-            Cancelar
-          </v-btn>
-          <v-btn color="blue darken-1" text @click="save" :loading="loading">
-            Guardar
-          </v-btn>
+          <v-btn color="blue-darken-1" variant="text" @click="close">Cancelar</v-btn>
+          <v-btn color="blue-darken-1" variant="text" @click="save" :disabled="!valid">Guardar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Diálogo de Confirmación para Eliminar -->
-    <v-dialog v-model="dialogDelete" max-width="350px">
-      <v-card>
-        <v-card-title class="text-h6">
-          ¿Estás seguro de que quieres eliminar este Grado?
-        </v-card-title>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="closeDeleteDialog" :disabled="loading">
-            Cancelar
-          </v-btn>
-          <v-btn color="red darken-1" text @click="deleteItemConfirm" :loading="loading">
-            Eliminar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <v-data-table
+      :headers="headers"
+      :items="grados"
+      :sort-by="[{ key: 'id_grado', order: 'asc' }]"
+      class="elevation-1"
+    >
+      <template v-slot:item.index="{ index }">{{ index + 1 }}</template>
+      <template v-slot:item.nombre_profesor="{ item }">{{ getNombreProfesor(item.profesor_id) }}</template>
+      <template v-slot:item.nombre_especialidad="{ item }">{{ getNombreEspecialidad(item.id_especialidad) }}</template>
+      <template v-slot:item.actions="{ item }">
+        <v-icon size="small" class="me-2" @click="editItem(item)">mdi-pencil</v-icon>
+        <v-icon size="small" @click="deleteItem(item)">mdi-delete</v-icon>
+      </template>
+      <template v-slot:no-data>
+        <v-btn color="primary" @click="fetchData">Recargar Datos</v-btn>
+      </template>
+    </v-data-table>
   </v-container>
 </template>
 
 <script>
-// La URL de tu API de Grados. ¡Asegúrate de que sea correcta!
-// Usa la ruta que confirmaste que funciona: http://localhost/api_proyecto_final/grados.php
-const API_URL = 'http://localhost/api_proyecto_final/grados.php'; 
+import { nextTick } from "vue";
 
-// Objeto por defecto para un nuevo registro
-const defaultItem = {
-  id_grado: null,
-  año_lectivo: new Date().getFullYear(),
-  grado: '',
-  profesor_id: null,
-  id_especialidad: null,
-};
+const BASE_URL = "http://localhost/api_proyecto_final"; // <- ruta completa de XAMPP
 
 export default {
-  name: 'GradosView',
   data: () => ({
-    search: '', 
-    dialog: false, 
-    dialogDelete: false, 
-    valid: true, 
-    loading: false, // Estado para mostrar indicadores de carga
-
-    // Alerta de notificación
-    alert: {
-      show: false,
-      message: '',
-      type: 'success', // success, error, info, warning
-    },
-
+    dialog: false,
+    valid: true,
+    errorMessage: "",
     headers: [
-      { text: 'ID', value: 'id_grado' },
-      { text: 'Año Lectivo', value: 'año_lectivo' },
-      { text: 'Grado', value: 'grado' },
-      { text: 'Profesor Guía', value: 'profesor_nombre' }, // Nombre del profesor (viene del JOIN)
-      { text: 'Especialidad', value: 'especialidad_nombre' }, // Nombre de la especialidad (viene del JOIN)
-      { text: 'Acciones', value: 'actions', sortable: false },
+      { title: "N°", value: "index", sortable: false, width: "5%" },
+      { title: "Año Lectivo", value: "anio_lectivo", width: "10%" },
+      { title: "Nombre del Grado", value: "grado", width: "25%" },
+      { title: "Profesor Encargado", value: "nombre_profesor", sortable: false, width: "25%" },
+      { title: "Especialidad", value: "nombre_especialidad", sortable: false, width: "25%" },
+      { title: "Acciones", value: "actions", sortable: false, width: "10%" },
     ],
-    
-    grados: [], 
-    
-    // --- DATOS SIMULADOS PARA LOS SELECTORES (PROFESORES/ESPECIALIDADES) ---
-    // En una aplicación completa, estos también se traerían por API.
-    profesores: [
-      { id_profesor: 101, nombre_completo: 'Lic. Ana Morales' },
-      { id_profesor: 102, nombre_completo: 'Ing. Carlos Ruiz' },
-      { id_profesor: 103, nombre_completo: 'MSc. Elena García' },
-      { id_profesor: 104, nombre_completo: 'Dr. Javier Soto' },
-      { id_profesor: 105, nombre_completo: 'Prof. Luisa Pérez' },
-      { id_profesor: 106, nombre_completo: 'Arq. Roberto Méndez' },
-    ], 
-    especialidades: [
-      { id_especialidad: 1, nombre_especialidad: 'Ciencias y Humanidades' },
-      { id_especialidad: 2, nombre_especialidad: 'Contaduría' },
-      { id_especialidad: 3, nombre_especialidad: 'Salud Comunitaria' },
-      { id_especialidad: 4, nombre_especialidad: 'Desarrollo de Software' },
-      { id_especialidad: 5, nombre_especialidad: 'Diseño Gráfico' },
-      { id_especialidad: 6, nombre_especialidad: 'Servicios Turísticos' },
-      { id_especialidad: 7, nombre_especialidad: 'Mecánica Automotriz' },
-    ], 
-
-    editedIndex: -1, 
-    editedItem: { ...defaultItem },
-    defaultItem: { ...defaultItem }, 
+    grados: [],
+    profesores: [],
+    especialidades: [],
+    editedIndex: -1,
+    editedItem: {
+      id_grado: 0,
+      anio_lectivo: new Date().getFullYear(),
+      grado: "",
+      profesor_id: null,
+      id_especialidad: null,
+    },
+    defaultItem: {
+      id_grado: 0,
+      anio_lectivo: new Date().getFullYear(),
+      grado: "",
+      profesor_id: null,
+      id_especialidad: null,
+    },
   }),
 
   computed: {
     formTitle() {
-      return this.editedIndex === -1 ? 'Agregar Nuevo Grado' : 'Editar Grado';
+      return this.editedIndex === -1 ? "Nuevo Grado" : "Editar Grado";
+    },
+    profesoresItems() {
+      return this.profesores.map((p) => ({
+        id_profesor: p.id_profesor,
+        nombre_completo: p.nombre_completo,
+      }));
+    },
+    especialidadesItems() {
+      return this.especialidades.map((e) => ({
+        id_especialidad: e.id_especialidad,
+        nombre_especialidad: e.nombre_especialidad,
+      }));
     },
   },
 
   watch: {
     dialog(val) {
-      val || this.closeDialog();
-    },
-    dialogDelete(val) {
-      val || this.closeDeleteDialog();
+      val || this.close();
+      if (val && this.$refs.form) this.$refs.form.resetValidation();
     },
   },
 
   created() {
-    // Carga los datos de la base de datos real al iniciar
-    this.fetchGrados();
+    this.fetchData();
   },
 
   methods: {
-    // ------------------ MANEJO DE ALERTA ------------------
-    showAlert(message, type = 'success') {
-      this.alert.message = message;
-      this.alert.type = type;
-      this.alert.show = true;
-      setTimeout(() => {
-        this.alert.show = false;
-      }, 3000);
-    },
-
-    // ------------------ MÉTODOS DE LA UI ------------------
-
-    openDialog(action, item) {
-      this.alert.show = false; // Oculta cualquier alerta anterior
-
-      if (action === 'add') {
-        this.editedIndex = -1;
-        this.editedItem = { ...this.defaultItem }; 
-        this.dialog = true;
-      } else if (action === 'edit') {
-        this.editedIndex = this.grados.findIndex(g => g.id_grado === item.id_grado);
-        // Copiamos los datos del item para la edición
-        this.editedItem = {
-            id_grado: item.id_grado,
-            año_lectivo: item.año_lectivo,
-            grado: item.grado,
-            profesor_id: item.profesor_id,
-            id_especialidad: item.id_especialidad,
-        };
-        this.dialog = true;
-      } else if (action === 'delete') {
-        this.editedItem = Object.assign({}, item);
-        this.dialogDelete = true;
-      }
-    },
-
-    closeDialog() {
-      this.dialog = false;
-      this.$nextTick(() => {
-        this.editedItem = { ...this.defaultItem };
-        this.editedIndex = -1;
-        if (this.$refs.form) this.$refs.form.resetValidation();
-      });
-    },
-
-    closeDeleteDialog() {
-      this.dialogDelete = false;
-      this.$nextTick(() => {
-        this.editedItem = { ...this.defaultItem };
-      });
-    },
-
-    // ------------------ MÉTODOS FETCH (CRUD REAL) ------------------
-
-    async fetchGrados() {
-      this.loading = true;
+    async fetchData() {
+      this.errorMessage = "";
       try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-          throw new Error('Error al cargar los grados: ' + response.statusText);
-        }
-        this.grados = await response.json();
-      } catch (error) {
-        console.error('Error en fetchGrados:', error);
-        this.showAlert('No se pudieron cargar los datos. Revisa la conexión con tu API.', 'error');
-      } finally {
-        this.loading = false;
+        const gradosRes = await fetch(`${BASE_URL}/grados.php`);
+        this.grados = await gradosRes.json();
+
+        const profesoresRes = await fetch(`${BASE_URL}/profesores.php`);
+        this.profesores = await profesoresRes.json();
+
+        const especialidadesRes = await fetch(`${BASE_URL}/especialidad.php`);
+        this.especialidades = await especialidadesRes.json();
+      } catch (e) {
+        console.error(e);
+        this.errorMessage = "No se pudieron cargar los datos. Revisa la consola.";
       }
+    },
+
+    getNombreProfesor(id) {
+      const profesor = this.profesores.find((p) => p.id_profesor === id);
+      return profesor ? profesor.nombre_completo : "N/A";
+    },
+
+    getNombreEspecialidad(id) {
+      if (id === null || id === undefined) return "N/A";
+      const esp = this.especialidades.find((e) => e.id_especialidad === id);
+      return esp ? esp.nombre_especialidad : "N/A";
+    },
+
+    editItem(item) {
+      this.editedIndex = this.grados.indexOf(item);
+      this.editedItem = Object.assign({}, item);
+      this.dialog = true;
+      nextTick(() => this.$refs.form.resetValidation());
+    },
+
+    async deleteItem(item) {
+      if (!confirm("¿Estás seguro de eliminar este grado?")) return;
+      try {
+        const res = await fetch(`${BASE_URL}/grados.php?id=${item.id_grado}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        this.grados.splice(this.grados.indexOf(item), 1);
+      } catch (e) {
+        console.error(e);
+        this.errorMessage = "Error al eliminar el grado.";
+      }
+    },
+
+    close() {
+      this.dialog = false;
+      this.$refs.form.resetValidation();
+      this.editedItem = Object.assign({}, this.defaultItem);
+      this.editedIndex = -1;
+      this.errorMessage = "";
     },
 
     async save() {
-      // Validación del formulario
-      if (!this.$refs.form || !this.$refs.form.validate()) return;
-      
-      this.loading = true;
-      const isNew = this.editedIndex === -1;
-      const method = isNew ? 'POST' : 'PUT';
-      
+      this.errorMessage = "";
+      if (!this.$refs.form.validate()) return;
+
+      const itemToSave = { ...this.editedItem };
+      if (itemToSave.id_especialidad === "") itemToSave.id_especialidad = null;
+      itemToSave.anio_lectivo = parseInt(itemToSave.anio_lectivo);
+
       try {
-        // La URL para POST es simple; para PUT podemos adjuntar el ID en la URL o el cuerpo.
-        const response = await fetch(API_URL + (isNew ? '' : '?id=' + this.editedItem.id_grado), {
-          method: method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.editedItem)
-        });
-
-        // Parseamos la respuesta del backend
-        const result = await response.json();
-
-        if (response.ok && response.status !== 204) { 
-            this.showAlert(result.message || (isNew ? 'Grado agregado.' : 'Grado actualizado.'));
-            await this.fetchGrados(); // Recargar datos para ver el cambio
-        } else {
-            // Maneja errores de validación o del servidor (ej. 400 Bad Request)
-            throw new Error(result.message || 'Error desconocido al guardar.');
-        }
-
-      } catch (error) {
-        console.error('Error en save:', error);
-        this.showAlert(`Operación fallida: ${error.message}`, 'error');
-      } finally {
-        this.loading = false;
-        this.closeDialog();
-      }
-    },
-
-    async deleteItemConfirm() {
-      this.loading = true;
-      const idToDelete = this.editedItem.id_grado;
-      
-      try {
-        // Enviar la petición DELETE. El ID se pasa como parámetro de consulta.
-        const response = await fetch(API_URL + '?id=' + idToDelete, {
-          method: 'DELETE',
-          // Aunque el ID está en la URL, el backend de PHP está configurado para leerlo
-          // de $_GET o del cuerpo, por lo que enviamos el cuerpo para consistencia.
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_grado: idToDelete }) 
-        });
-
-        // Intentamos parsear el JSON si existe, si no, asumimos éxito (204 No Content)
-        const result = response.status !== 204 ? await response.json() : { message: "Registro eliminado." };
-
-        if (response.ok) {
-          this.showAlert(result.message || 'Grado eliminado exitosamente.');
-          await this.fetchGrados(); // Recargar datos
-        } else {
-          // Si response.ok es falso (ej. 400, 500)
-          throw new Error(result.message || 'Error desconocido al eliminar.');
-        }
-
-      } catch (error) {
-        console.error('Error en deleteItemConfirm:', error);
-        this.showAlert(`Eliminación fallida: ${error.message}`, 'error');
-      } finally {
-        this.loading = false;
-        this.closeDeleteDialog();
+        const res = await fetch(
+          this.editedIndex > -1
+            ? `${BASE_URL}/grados.php?id=${itemToSave.id_grado}`
+            : `${BASE_URL}/grados.php`,
+          {
+            method: this.editedIndex > -1 ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(itemToSave),
+          }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        this.fetchData();
+        this.close();
+      } catch (e) {
+        console.error(e);
+        this.errorMessage = `Error al guardar: ${e.message}`;
       }
     },
   },
@@ -388,8 +241,7 @@ export default {
 </script>
 
 <style scoped>
-/* Estilos opcionales */
-.v-container {
-  max-width: 1200px;
+.v-data-table {
+  max-width: 100%;
 }
 </style>

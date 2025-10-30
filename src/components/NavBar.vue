@@ -14,8 +14,8 @@
       Asistencias
     </v-btn>
 
-    <v-btn text to="/materias" class="hidden-sm-and-down">
-      Materias
+    <v-btn text to="/secciones" class="hidden-sm-and-down">
+      Secciones
     </v-btn>
 
     <v-menu offset-y>
