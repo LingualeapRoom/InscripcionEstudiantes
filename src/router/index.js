@@ -1,26 +1,24 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import store from '@/store'                
 import HomeView from '@/views/HomeView.vue'
 import Login from '@/views/Login.vue'
 import GradosView from '@/components/GradosView.vue'
 import SeccionesView from '@/components/SeccionesView.vue'
+import EstudiantesView from '@/components/EstudiantesView.vue'
+import ProfesoresView from '@/components/ProfesoresView.vue'
 
 const routes = [
-
   {
     path: '/login',
     name: 'Login',
     component: Login
   },
- 
   {
     path: '/',
     name: 'Home',
     component: HomeView,
     meta: { requiresAuth: true }
   },
- 
   {
     path: '/grados',
     name: 'Grados',
@@ -31,6 +29,16 @@ const routes = [
     path: '/secciones',
     name: 'Secciones',
     component: SeccionesView
+  },
+  {
+    path: '/estudiantes',
+    name: 'Estudiantes',
+    component: EstudiantesView
+  },
+  {
+    path: '/profesores',
+    name: 'Profesores',
+    component: ProfesoresView
   }
 ]
 
@@ -39,13 +47,11 @@ const router = createRouter({
   routes
 })
 
-
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta?.requiresAuth)
   const isAuth = store.getters['auth/isAuthenticated']
 
   if (requiresAuth && !isAuth) {
-  
     return next({ name: 'Login', query: { redirect: to.fullPath } })
   }
   if (to.name === 'Login' && isAuth) {
