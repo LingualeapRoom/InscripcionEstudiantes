@@ -5,7 +5,6 @@ import HomeView from '@/views/HomeView.vue'
 import Login from '@/views/Login.vue'
 import GradosView from '@/components/GradosView.vue'
 import SeccionesView from '@/components/SeccionesView.vue'
-import UsuariosView from '@/views/UsuariosView.vue'
 
 const routes = [
 
@@ -31,23 +30,7 @@ const routes = [
   {
     path: '/secciones',
     name: 'Secciones',
-    component: SeccionesView,
-    meta: { requiresAuth: true }
-  },
-
-  {
-    path: '/usuarios',
-    name: 'usuarios',
-    component: UsuariosView,
-    meta: { requiresAuth: true }
-  },
- 
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: to => {
-      const isAuth = store.getters['auth/isAuthenticated']
-      return isAuth ? { name: 'Home' } : { name: 'Login' }
-    }
+    component: SeccionesView
   }
 ]
 

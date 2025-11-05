@@ -9,31 +9,25 @@
     <v-btn text to="/grados" class="hidden-sm-and-down">
       Grados
     </v-btn>
-
-    <v-btn text to="/asistencias" class="hidden-sm-and-down">
-      Asistencias
-    </v-btn>
-
-    <v-btn text to="/secciones" class="hidden-sm-and-down">
+<v-btn text to="/secciones" class="hidden-sm-and-down">
       Secciones
     </v-btn>
 
     <v-menu offset-y>
-      <template v-slot:activator="{ on, attrs }">
+      <template v-slot:activator="{ props }"> 
         <v-btn
           text
-          v-bind="attrs"
-          v-on="on"
+          v-bind="props"
           class="hidden-sm-and-down"
         >
           Usuarios <v-icon right>mdi-menu-down</v-icon>
         </v-btn>
       </template>
       <v-list>
-        <v-list-item to="/usuarios/alumnos">
-          <v-list-item-title>Alumnos</v-list-item-title>
+        <v-list-item to="/estudiantes"> 
+          <v-list-item-title>Estudiantes</v-list-item-title>
         </v-list-item>
-        <v-list-item to="/usuarios/profesores">
+        <v-list-item to="/profesores">
           <v-list-item-title>Profesores</v-list-item-title>
         </v-list-item>
         </v-list>
@@ -42,11 +36,10 @@
     <v-spacer></v-spacer>
 
     <v-menu offset-y>
-      <template v-slot:activator="{ on, attrs }">
+      <template v-slot:activator="{ props }"> 
         <v-btn
           text
-          v-bind="attrs"
-          v-on="on"
+          v-bind="props"
         >
           admin (Administrador) <v-icon right>mdi-menu-down</v-icon>
         </v-btn>
