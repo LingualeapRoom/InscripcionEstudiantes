@@ -6,73 +6,81 @@
       </router-link>
     </v-toolbar-title>
 
-    <v-btn text to="/grados" class="hidden-sm-and-down">
-      Grados
-    </v-btn>
-<v-btn text to="/secciones" class="hidden-sm-and-down">
-      Secciones
-    </v-btn>
+    <!-- Menús principales: solo si hay sesión Y no estamos en /login -->
+    <template v-if="isAuthenticated && !isLoginRoute">
+      <v-btn text to="/grados" class="hidden-sm-and-down">Grados</v-btn>
+      <v-btn text to="/secciones" class="hidden-sm-and-down">Secciones</v-btn>
 
-    <v-menu offset-y>
-      <template v-slot:activator="{ props }"> 
-        <v-btn
-          text
-          v-bind="props"
-          class="hidden-sm-and-down"
-        >
-          Usuarios <v-icon right>mdi-menu-down</v-icon>
-        </v-btn>
-      </template>
-      <v-list>
-        <v-list-item to="/estudiantes"> 
-          <v-list-item-title>Estudiantes</v-list-item-title>
-        </v-list-item>
-        <v-list-item to="/profesores">
-          <v-list-item-title>Profesores</v-list-item-title>
-        </v-list-item>
+      <v-menu offset-y>
+        <template #activator="{ props }">
+          <v-btn text v-bind="props" class="hidden-sm-and-down">
+            Usuarios <v-icon right>mdi-menu-down</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item to="/estudiantes">
+            <v-list-item-title>Estudiantes</v-list-item-title>
+          </v-list-item>
+          <v-list-item to="/profesores">
+            <v-list-item-title>Profesores</v-list-item-title>
+          </v-list-item>
         </v-list>
-    </v-menu>
+      </v-menu>
 
-    <v-spacer></v-spacer>
+      <v-spacer></v-spacer>
 
-    <v-menu offset-y>
-      <template v-slot:activator="{ props }"> 
-        <v-btn
-          text
-          v-bind="props"
-        >
-          admin (Administrador) <v-icon right>mdi-menu-down</v-icon>
-        </v-btn>
-      </template>
-      <v-list>
-        <v-list-item @click="logout">
-          <v-list-item-title>Cerrar Sesión</v-list-item-title>
-        </v-list-item>
-        <v-list-item to="/perfil">
-          <v-list-item-title>Mi Perfil</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-menu>
+      <!-- Menú de usuario -->
+      <v-menu offset-y>
+        <template #activator="{ props }">
+          <v-btn text v-bind="props">
+            {{ userLabel }} <v-icon right>mdi-menu-down</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="logout">
+            <v-list-item-title>Cerrar Sesión</v-list-item-title>
+          </v-list-item>
+          <v-list-item to="/perfil">
+            <v-list-item-title>Mi Perfil</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+    </template>
   </v-app-bar>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
+
 export default {
   name: 'NavBar',
+  computed: {
+    ...mapGetters(['isAuthenticated', 'user']),
+    isLoginRoute() {
+      return this.$route.name === 'Login';
+    },
+    userLabel() {
+      // Muestra "nombre (rol)" si existe; fallback simple si falta algo
+      if (this.user) {
+        const rol = this.user.rol ? ` (${this.user.rol})` : '';
+        return `${this.user.nombre}${rol}`;
+      }
+      return 'Usuario';
+    }
+  },
   methods: {
-    logout() {
-      // Lógica para cerrar sesión (ej. en Vuex)
-      console.log('Cerrar sesión');
-      // this.$store.dispatch('auth/logout');
-      // this.$router.push('/login');
+    async logout() {
+      try {
+        // Llama al logout del store (ver sección 2)
+        await this.$store.dispatch('logout');
+      } finally {
+        this.$router.push({ name: 'Login' });
+      }
     }
   }
-}
+};
 </script>
 
 <style scoped>
-/* Estilos opcionales para asegurar que el router-link no tenga subrayado */
-.text-decoration-none {
-  text-decoration: none;
-}
+.text-decoration-none { text-decoration: none; }
 </style>
