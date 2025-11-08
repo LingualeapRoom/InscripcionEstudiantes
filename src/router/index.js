@@ -1,11 +1,14 @@
+// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
+
 import HomeView from '@/views/HomeView.vue';
 import Login from '@/views/Login.vue';
 import GradosView from '@/components/GradosView.vue';
 import SeccionesView from '@/components/SeccionesView.vue';
 import EstudiantesView from '@/components/EstudiantesView.vue';
 import ProfesoresView from '@/components/ProfesoresView.vue';
+import UsuariosAdminView from '@/views/UsuariosAdminView.vue';
 
 const routes = [
   { path: '/login', name: 'Login', component: Login },
@@ -14,34 +17,39 @@ const routes = [
   { path: '/secciones', name: 'Secciones', component: SeccionesView, meta: { requiresAuth: true } },
   { path: '/estudiantes', name: 'Estudiantes', component: EstudiantesView, meta: { requiresAuth: true } },
   { path: '/profesores', name: 'Profesores', component: ProfesoresView, meta: { requiresAuth: true } },
+  { path: '/admin/usuarios', name: 'UsuariosAdmin', component: UsuariosAdminView,
+    meta: { requiresAuth: true, adminOnly: true } },
 ];
 
 const router = createRouter({
-  // Si usas Vue CLI: process.env.BASE_URL está bien.
-  // Si usas Vite, cambia por: createWebHistory(import.meta.env.BASE_URL)
   history: createWebHistory(process.env.BASE_URL),
   routes,
 });
 
-// Guard con restauración de sesión
 router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth);
-  const isAuth = store.getters.isAuthenticated; // <-- sin 'auth/'
+  const adminOnly    = to.matched.some(r => r.meta?.adminOnly);
+  const isAuth = store.getters.isAuthenticated;
 
-  if (requiresAuth) {
-    if (isAuth) return next();
+  let user = store.getters.user;
 
-    // si hay token guardado, intenta validar contra el backend
+  if (requiresAuth && !isAuth) {
     if (store.state.token) {
       const me = await store.dispatch('fetchMe');
-      if (me) return next();
+      if (me) user = me; else return next({ name: 'Login', query: { redirect: to.fullPath } });
+    } else {
+      return next({ name: 'Login', query: { redirect: to.fullPath } });
     }
-    return next({ name: 'Login', query: { redirect: to.fullPath } });
   }
 
-  if (to.name === 'Login' && isAuth) {
-    return next({ name: 'Home' });
+  if (adminOnly) {
+    const role = (user?.rol || '').toString().trim().toLowerCase();
+    if (role !== 'admin' && role !== 'administrador') {
+      return next({ name: 'Home' });
+    }
   }
+
+  if (to.name === 'Login' && isAuth) return next({ name: 'Home' });
 
   next();
 });

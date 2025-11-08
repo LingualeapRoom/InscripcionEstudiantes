@@ -6,7 +6,6 @@
       </router-link>
     </v-toolbar-title>
 
-    <!-- Menús principales: solo si hay sesión Y no estamos en /login -->
     <template v-if="isAuthenticated && !isLoginRoute">
       <v-btn text to="/grados" class="hidden-sm-and-down">Grados</v-btn>
       <v-btn text to="/secciones" class="hidden-sm-and-down">Secciones</v-btn>
@@ -27,9 +26,17 @@
         </v-list>
       </v-menu>
 
-      <v-spacer></v-spacer>
+      <v-btn
+        v-if="isAdmin"
+        text
+        to="/admin/usuarios"
+        class="hidden-sm-and-down"
+      >
+        Administrar usuarios
+      </v-btn>
 
-      <!-- Menú de usuario -->
+      <v-spacer />
+
       <v-menu offset-y>
         <template #activator="{ props }">
           <v-btn text v-bind="props">
@@ -39,9 +46,6 @@
         <v-list>
           <v-list-item @click="logout">
             <v-list-item-title>Cerrar Sesión</v-list-item-title>
-          </v-list-item>
-          <v-list-item to="/perfil">
-            <v-list-item-title>Mi Perfil</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -56,11 +60,12 @@ export default {
   name: 'NavBar',
   computed: {
     ...mapGetters(['isAuthenticated', 'user']),
-    isLoginRoute() {
-      return this.$route.name === 'Login';
+    isLoginRoute() { return this.$route.name === 'Login'; },
+    isAdmin() {
+      const r = (this.user?.rol || '').toLowerCase();
+      return r === 'administrador' || r === 'admin';
     },
     userLabel() {
-      // Muestra "nombre (rol)" si existe; fallback simple si falta algo
       if (this.user) {
         const rol = this.user.rol ? ` (${this.user.rol})` : '';
         return `${this.user.nombre}${rol}`;
@@ -70,12 +75,8 @@ export default {
   },
   methods: {
     async logout() {
-      try {
-        // Llama al logout del store (ver sección 2)
-        await this.$store.dispatch('logout');
-      } finally {
-        this.$router.push({ name: 'Login' });
-      }
+      await this.$store.dispatch('logout');
+      this.$router.push({ name: 'Login' });
     }
   }
 };
