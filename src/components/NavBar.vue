@@ -9,6 +9,8 @@
     <template v-if="isAuthenticated && !isLoginRoute">
       <v-btn text to="/grados" class="hidden-sm-and-down">Grados</v-btn>
       <v-btn text to="/secciones" class="hidden-sm-and-down">Secciones</v-btn>
+      <v-btn text to="/especialidades" class="hidden-sm-and-down">Especialidades</v-btn>
+      <v-btn text to="/asistencias" class="hidden-sm-and-down">Asistencias</v-btn>
 
       <v-menu offset-y>
         <template #activator="{ props }">

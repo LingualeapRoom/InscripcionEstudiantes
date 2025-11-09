@@ -9,12 +9,16 @@ import SeccionesView from '@/components/SeccionesView.vue';
 import EstudiantesView from '@/components/EstudiantesView.vue';
 import ProfesoresView from '@/components/ProfesoresView.vue';
 import UsuariosAdminView from '@/views/UsuariosAdminView.vue';
+import EspecialidadesView from '@/components/EspecialidadesView.vue';
+import AsistenciasView from '@/components/AsistenciasView.vue';
 
 const routes = [
   { path: '/login', name: 'Login', component: Login },
   { path: '/', name: 'Home', component: HomeView, meta: { requiresAuth: true } },
   { path: '/grados', name: 'Grados', component: GradosView, meta: { requiresAuth: true } },
   { path: '/secciones', name: 'Secciones', component: SeccionesView, meta: { requiresAuth: true } },
+  { path: '/especialidades', name: 'Especialidades', component: EspecialidadesView, meta: { requiresAuth: true } },
+  { path: '/asistencias', name: 'Asistencias', component: AsistenciasView, meta: { requiresAuth: true } },
   { path: '/estudiantes', name: 'Estudiantes', component: EstudiantesView, meta: { requiresAuth: true } },
   { path: '/profesores', name: 'Profesores', component: ProfesoresView, meta: { requiresAuth: true } },
   { path: '/admin/usuarios', name: 'UsuariosAdmin', component: UsuariosAdminView,

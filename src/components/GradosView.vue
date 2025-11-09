@@ -1,5 +1,6 @@
 <template>
   <v-container>
+    <!-- Diálogo para Crear/Editar Grado -->
     <v-dialog v-model="dialog" max-width="500px">
       <template v-slot:activator="{ props }">
         <v-toolbar flat>
@@ -24,6 +25,8 @@
               label="Año Lectivo"
               :rules="[v => !!v || 'Año Lectivo es obligatorio']"
               required
+              variant="outlined"
+              density="comfortable"
             ></v-select>
 
             <v-text-field
@@ -31,9 +34,12 @@
               label="Nombre del Grado"
               :rules="[v => !!v || 'Grado es obligatorio']"
               required
+              variant="outlined"
+              density="comfortable"
             ></v-text-field>
 
-            <v-select
+            <!-- CAMBIO: Campo Profesor Encargado (profesor_id) ELIMINADO del formulario -->
+            <!-- <v-select
               v-model="editedItem.profesor_id"
               :items="profesoresItems"
               item-title="nombre_completo"
@@ -41,7 +47,7 @@
               label="Profesor Encargado"
               :rules="[v => !!v || 'Profesor Encargado es obligatorio']"
               required
-            ></v-select>
+            ></v-select> -->
 
             <v-select
               v-model="editedItem.id_especialidad"
@@ -50,9 +56,11 @@
               item-value="id_especialidad"
               label="Especialidad (Opcional)"
               clearable
+              variant="outlined"
+              density="comfortable"
             ></v-select>
 
-            <v-alert v-if="errorMessage" type="error" class="mt-3" density="compact">
+            <v-alert v-if="errorMessage" type="error" class="mt-3" density="compact" closable>
               {{ errorMessage }}
             </v-alert>
           </v-form>
@@ -66,14 +74,15 @@
       </v-card>
     </v-dialog>
 
+    <!-- Tabla de Grados (Las columnas ya están ajustadas) -->
     <v-data-table
       :headers="headers"
       :items="grados"
       :sort-by="[{ key: 'id_grado', order: 'asc' }]"
       class="elevation-1"
+      no-data-text="No hay datos de grados disponibles"
     >
       <template v-slot:item.index="{ index }">{{ index + 1 }}</template>
-      <template v-slot:item.nombre_profesor="{ item }">{{ getNombreProfesor(item.profesor_id) }}</template>
       <template v-slot:item.nombre_especialidad="{ item }">{{ getNombreEspecialidad(item.id_especialidad) }}</template>
       <template v-slot:item.actions="{ item }">
         <v-icon size="small" class="me-2" @click="editItem(item)">mdi-pencil</v-icon>
@@ -97,29 +106,30 @@ export default {
     valid: true,
     errorMessage: "",
     headers: [
-      { title: "N°", value: "index", sortable: false, width: "5%" },
-      { title: "Año Lectivo", value: "anio_lectivo", width: "10%" },
-      { title: "Nombre del Grado", value: "grado", width: "25%" },
-      { title: "Profesor Encargado", value: "nombre_profesor", sortable: false, width: "25%" },
-      { title: "Especialidad", value: "nombre_especialidad", sortable: false, width: "25%" },
-      { title: "Acciones", value: "actions", sortable: false, width: "10%" },
+      { title: "N°", value: "index", sortable: false, width: "5%", align: 'start' },
+      { title: "Nombre del Grado", value: "grado", width: "35%", align: 'start' },
+      { title: "Especialidad", value: "nombre_especialidad", sortable: false, width: "30%", align: 'start' },
+      { title: "Año Lectivo", value: "anio_lectivo", width: "15%", align: 'start' },
+      { title: "Acciones", value: "actions", sortable: false, width: "15%", align: 'center' },
     ],
     grados: [],
-    profesores: [],
+    // CAMBIO: Se eliminan profesores de la data, ya no se usan en esta vista
+    // profesores: [], 
     especialidades: [],
     editedIndex: -1,
     editedItem: {
       id_grado: 0,
       anio_lectivo: new Date().getFullYear(),
       grado: "",
-      profesor_id: null,
+      // CAMBIO: profesor_id se inicializa, pero no se expone en el formulario
+      profesor_id: null, 
       id_especialidad: null,
     },
     defaultItem: {
       id_grado: 0,
       anio_lectivo: new Date().getFullYear(),
       grado: "",
-      profesor_id: null,
+      profesor_id: null, // Mantenemos la propiedad para POST/PUT si la API lo requiere
       id_especialidad: null,
     },
   }),
@@ -128,15 +138,16 @@ export default {
     formTitle() {
       return this.editedIndex === -1 ? "Nuevo Grado" : "Editar Grado";
     },
-    profesoresItems() {
-      return this.profesores.map((p) => ({
-        id_profesor: p.id_profesor,
-        nombre_completo: p.nombre_completo,
-      }));
-    },
+    // CAMBIO: profesorItems eliminado, ya no se usa.
+    // profesoresItems() {
+    //   return this.profesores.map((p) => ({
+    //     id_profesor: parseInt(p.id_profesor),
+    //     nombre_completo: p.nombre_completo,
+    //   }));
+    // },
     especialidadesItems() {
       return this.especialidades.map((e) => ({
-        id_especialidad: e.id_especialidad,
+        id_especialidad: parseInt(e.id_especialidad),
         nombre_especialidad: e.nombre_especialidad,
       }));
     },
@@ -145,7 +156,7 @@ export default {
   watch: {
     dialog(val) {
       val || this.close();
-      if (val && this.$refs.form) this.$refs.form.resetValidation();
+      if (val && this.$refs.form) nextTick(() => this.$refs.form.resetValidation());
     },
   },
 
@@ -157,28 +168,43 @@ export default {
     async fetchData() {
       this.errorMessage = "";
       try {
-        const gradosRes = await fetch(`${BASE_URL}/grados.php`);
-        this.grados = await gradosRes.json();
-
-        const profesoresRes = await fetch(`${BASE_URL}/profesores.php`);
-        this.profesores = await profesoresRes.json();
-
-        const especialidadesRes = await fetch(`${BASE_URL}/especialidad.php`);
+        // CAMBIO: La llamada a profesores.php se elimina, solo necesitamos grados y especialidades
+        const [gradosRes, especialidadesRes] = await Promise.all([
+          fetch(`${BASE_URL}/grados.php`),
+          fetch(`${BASE_URL}/especialidad.php`),
+        ]);
+        
+        // Cargar Grados
+        if (!gradosRes.ok) throw new Error(`HTTP ${gradosRes.status} al cargar grados`);
+        const loadedGrados = await gradosRes.json();
+        this.grados = loadedGrados.map(g => ({
+            ...g,
+            id_grado: parseInt(g.id_grado),
+            anio_lectivo: parseInt(g.anio_lectivo),
+            profesor_id: g.profesor_id ? parseInt(g.profesor_id) : null,
+            id_especialidad: g.id_especialidad ? parseInt(g.id_especialidad) : null,
+        }));
+        
+        // Cargar Especialidades
+        if (!especialidadesRes.ok) throw new Error(`HTTP ${especialidadesRes.status} al cargar especialidades`);
         this.especialidades = await especialidadesRes.json();
+
       } catch (e) {
-        console.error(e);
-        this.errorMessage = "No se pudieron cargar los datos. Revisa la consola.";
+        console.error("Error en fetchData:", e);
+        this.errorMessage = `No se pudieron cargar los datos. Revisa la consola. Detalle: ${e.message}`;
       }
     },
 
-    getNombreProfesor(id) {
-      const profesor = this.profesores.find((p) => p.id_profesor === id);
-      return profesor ? profesor.nombre_completo : "N/A";
-    },
+    // CAMBIO: getNombreProfesor eliminado, ya no se usa.
+    // getNombreProfesor(id) {
+    //   if (!id) return "N/A";
+    //   const profesor = this.profesores.find((p) => parseInt(p.id_profesor) === id);
+    //   return profesor ? profesor.nombre_completo : "N/A";
+    // },
 
     getNombreEspecialidad(id) {
       if (id === null || id === undefined) return "N/A";
-      const esp = this.especialidades.find((e) => e.id_especialidad === id);
+      const esp = this.especialidades.find((e) => parseInt(e.id_especialidad) === id);
       return esp ? esp.nombre_especialidad : "N/A";
     },
 
@@ -190,49 +216,71 @@ export default {
     },
 
     async deleteItem(item) {
-      if (!confirm("¿Estás seguro de eliminar este grado?")) return;
+      if (!confirm(`¿Estás seguro de eliminar el grado "${item.grado}"?`)) return; 
       try {
         const res = await fetch(`${BASE_URL}/grados.php?id=${item.id_grado}`, { method: "DELETE" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+            const errorBody = await res.json().catch(() => ({ error: 'Error desconocido' }));
+            throw new Error(errorBody.error || `HTTP ${res.status}`);
+        }
         this.grados.splice(this.grados.indexOf(item), 1);
+        this.errorMessage = "";
       } catch (e) {
-        console.error(e);
-        this.errorMessage = "Error al eliminar el grado.";
+        console.error("Error al eliminar:", e);
+        this.errorMessage = `Error al eliminar el grado: ${e.message}`;
       }
     },
 
     close() {
       this.dialog = false;
-      this.$refs.form.resetValidation();
-      this.editedItem = Object.assign({}, this.defaultItem);
-      this.editedIndex = -1;
       this.errorMessage = "";
+      nextTick(() => {
+        if (this.$refs.form) this.$refs.form.resetValidation();
+        this.editedItem = Object.assign({}, this.defaultItem);
+        this.editedIndex = -1;
+      });
     },
 
     async save() {
       this.errorMessage = "";
-      if (!this.$refs.form.validate()) return;
+      if (!this.$refs.form || !this.$refs.form.validate()) return;
 
       const itemToSave = { ...this.editedItem };
-      if (itemToSave.id_especialidad === "") itemToSave.id_especialidad = null;
+      
+      // Sanitizar datos para la API
+      itemToSave.id_especialidad = itemToSave.id_especialidad === "" || itemToSave.id_especialidad === undefined
+        ? null 
+        : parseInt(itemToSave.id_especialidad);
+        
       itemToSave.anio_lectivo = parseInt(itemToSave.anio_lectivo);
+      
+      // CLAVE: Aseguramos que profesor_id siempre sea null si no se proporciona en el formulario
+      // (ya que se ha eliminado, asumimos que siempre es null al crear/editar desde esta interfaz)
+      // Si la API requiere un profesor_id, esto podría causar un error en la API, pero a nivel de Vue es correcto.
+      itemToSave.profesor_id = null; 
 
       try {
+        const isUpdate = this.editedIndex > -1;
         const res = await fetch(
-          this.editedIndex > -1
+          isUpdate
             ? `${BASE_URL}/grados.php?id=${itemToSave.id_grado}`
             : `${BASE_URL}/grados.php`,
           {
-            method: this.editedIndex > -1 ? "PUT" : "POST",
+            method: isUpdate ? "PUT" : "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(itemToSave),
           }
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        this.fetchData();
+        
+        if (!res.ok) {
+            const errorBody = await res.json().catch(() => ({ error: 'Error desconocido del servidor' }));
+            throw new Error(errorBody.error || `HTTP ${res.status}`);
+        }
+        
+        this.fetchData(); // Recargar datos
         this.close();
       } catch (e) {
-        console.error(e);
+        console.error("Error al guardar:", e);
         this.errorMessage = `Error al guardar: ${e.message}`;
       }
     },
@@ -243,5 +291,8 @@ export default {
 <style scoped>
 .v-data-table {
   max-width: 100%;
+}
+.v-container {
+  padding: 16px;
 }
 </style>
