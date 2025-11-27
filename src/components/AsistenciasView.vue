@@ -20,7 +20,7 @@
             style="max-width: 180px;"
           ></v-select>
 
-          <v-select
+          <v-autocomplete
             v-model="filtroNIE"
             :items="estudiantes"
             item-title="nombre_completo"
@@ -32,8 +32,8 @@
             hide-details
             class="mr-4"
             style="max-width: 250px;"
-          ></v-select>
-
+            no-data-text="No hay estudiantes coincidentes"
+          ></v-autocomplete>
           <v-text-field
             v-model="filtroFecha"
             label="Filtrar por Fecha"
@@ -143,7 +143,6 @@
 <script>
 import { nextTick } from "vue";
 
-// Asegúrate de que esta URL base apunte a tu directorio de la API
 const BASE_URL = "http://localhost/api_proyecto_final"; 
 
 export default {
@@ -155,8 +154,8 @@ export default {
     // VARIABLES DE FILTRO
     filtroNIE: null, 
     filtroFecha: null,
-    filtroGradoId: null, // NUEVA VARIABLE DE FILTRO
-    // FIN VARIABLES DE FILTRO
+    filtroGradoId: null,
+
     
     headers: [
       { title: "Estudiante", value: "nombre_estudiante", align: 'start' }, 
@@ -194,18 +193,17 @@ export default {
     formTitle() {
       return this.editedIndex === -1 ? "Nueva Asistencia" : "Editar Asistencia";
     },
-    
-    // LÓGICA DE FILTRADO ACTUALIZADA CON GRADO
+
     asistenciasFiltradas() {
       let datosFiltrados = this.asistencias;
 
       // 1. Filtrar por GRADO
       if (this.filtroGradoId !== null) {
-        // Aseguramos que la comparación sea con números, ya que 'id_grado' se carga como entero
+        
         datosFiltrados = datosFiltrados.filter(a => a.grado_id === this.filtroGradoId);
       }
 
-      // 2. Filtrar por NIE (Estudiante)
+      // 2. Filtrar por NIE 
       if (this.filtroNIE) {
         datosFiltrados = datosFiltrados.filter(a => a.NIE === this.filtroNIE);
       }
@@ -235,23 +233,26 @@ export default {
     async fetchDependencies() {
       this.errorMessage = "";
       
-      // Cargar lista de estudiantes
+      
       try {
         const resEstudiantes = await fetch(`${BASE_URL}/estudiantes.php`);
         if (!resEstudiantes.ok) throw new Error(`HTTP ${resEstudiantes.status} al cargar estudiantes`);
         const data = await resEstudiantes.json();
-        this.estudiantes = data; 
+        this.estudiantes = data.map(e => ({
+            ...e,
+            nombre_completo: `${e.nombre} ${e.apellido}`, // Crear un campo para mostrar nombre y buscar
+        }));
       } catch (e) {
         console.error("Error cargando estudiantes:", e);
         this.errorMessage = `Error al cargar la lista de estudiantes. ${e.message}`;
       }
       
-      // Cargar lista de grados
+      
       try {
         const resGrados = await fetch(`${BASE_URL}/grados.php`);
         if (!resGrados.ok) throw new Error(`HTTP ${resGrados.status} al cargar grados`);
         const loadedGrados = await resGrados.json();
-        // Mapear y convertir id_grado a número entero, crucial para el filtro
+        // Mapeo
         this.grados = loadedGrados.map(g => ({ ...g, id_grado: parseInt(g.id_grado) }));
       } catch (e) {
         console.error("Error cargando grados:", e);
@@ -266,11 +267,11 @@ export default {
         if (!res.ok) throw new Error(`HTTP ${res.status} al cargar asistencias`);
         const loadedAsistencias = await res.json();
         
-        // Mapear y convertir los IDs a número entero para Vue
+        
         this.asistencias = loadedAsistencias.map(a => ({
           ...a,
           id_asistencia: parseInt(a.id_asistencia),
-          grado_id: parseInt(a.grado_id), // Aseguramos que sea número para el filtro
+          grado_id: parseInt(a.grado_id), 
         }));
 
       } catch (e) {
@@ -353,7 +354,7 @@ export default {
             throw new Error(errorBody.error || `HTTP ${res.status}`);
         }
         
-        this.fetchData(); // Recargar datos para actualizar la tabla
+        this.fetchData(); 
         this.close();
       } catch (e) {
         console.error("Error al guardar:", e);

@@ -12,3 +12,13 @@ createApp(App)
   .use(store)
   .use(vuetify)
   .mount('#app')
+
+const ignoreResizeObserverError = () => {
+  const resizeObserverErrDiv = document.createElement('div');
+  window.addEventListener('error', (e) => {
+    if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+      e.stopImmediatePropagation();
+    }
+  });
+};
+ignoreResizeObserverError();
