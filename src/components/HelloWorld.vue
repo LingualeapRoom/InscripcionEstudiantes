@@ -43,5 +43,4 @@ export default {
 </script>
 
 <style scoped>
-/* Puedes añadir estilos específicos aquí si necesitas más control */
 </style>
