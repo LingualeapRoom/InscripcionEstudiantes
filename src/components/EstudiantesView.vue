@@ -203,10 +203,99 @@
         </v-card>
     </v-dialog>
 
-    <v-dialog v-model="detailsDialog" max-width="600px">
-        <v-card>
-            </v-card>
-    </v-dialog>
+    <v-dialog v-model="detailsDialog" max-width="700px">
+    <v-card>
+        <v-card-title class="text-h5 bg-blue-grey-darken-1 text-white">
+            <v-icon class="me-2">mdi-account-details</v-icon>
+            Detalles de: {{ viewedItem.nombre_completo }}
+        </v-card-title>
+        <v-card-text class="pa-6">
+            <v-row dense>
+                <v-col cols="12">
+                    <h3 class="text-subtitle-1 font-weight-bold">Datos Personales & Matrícula</h3>
+                    <v-divider class="my-1"></v-divider>
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">NIE:</span> {{ viewedItem.NIE }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Sección:</span> {{ getNombreSeccion(viewedItem.seccion_id) }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Fecha de Nacimiento:</span> {{ viewedItem.fecha_de_nacimiento }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Lugar de Nacimiento:</span> {{ viewedItem.lugar_de_nacimiento || 'N/A' }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Género:</span> {{ getGenero(viewedItem.genero_del_alumno) }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">DUI:</span> {{ viewedItem.dui || 'N/A' }}
+                </v-col>
+                
+                <v-col cols="12" class="mt-4">
+                    <h3 class="text-subtitle-1 font-weight-bold">Contacto & Dirección</h3>
+                    <v-divider class="my-1"></v-divider>
+                </v-col>
+                <v-col cols="12">
+                    <span class="font-weight-medium">Correo:</span> {{ viewedItem.correo || 'N/A' }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Teléfono Personal:</span> {{ viewedItem.telefono_personal || 'N/A' }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Teléfono Emergencia:</span> {{ viewedItem.telefono_de_emergencia || 'N/A' }}
+                </v-col>
+                <v-col cols="12">
+                    <span class="font-weight-medium">Dirección:</span> {{ viewedItem.direccion || 'N/A' }}
+                </v-col>
+
+                <v-col cols="12" class="mt-4">
+                    <h3 class="text-subtitle-1 font-weight-bold">Familia y Otros</h3>
+                    <v-divider class="my-1"></v-divider>
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Padre:</span> {{ viewedItem.nombre_papa || 'N/A' }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Madre:</span> {{ viewedItem.nombre_mama || 'N/A' }}
+                </v-col>
+                <v-col cols="12">
+                    <span class="font-weight-medium">Responsable:</span> {{ viewedItem.nombre_responsable || 'N/A' }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Estado Civil:</span> {{ getEstadoCivil(viewedItem.estado_civil) || 'N/A' }}
+                </v-col>
+                <v-col cols="12" sm="6">
+                    <span class="font-weight-medium">Religión:</span> {{ viewedItem.religion || 'N/A' }}
+                </v-col>
+
+                <v-col cols="12" class="mt-4">
+                    <h3 class="text-subtitle-1 font-weight-bold">Salud y Habilidades</h3>
+                    <v-divider class="my-1"></v-divider>
+                </v-col>
+                <v-col cols="12">
+                    <span class="font-weight-medium">Enfermedad Crónica:</span> 
+                    <v-chip :color="viewedItem.enfermedad_si_no ? 'red' : 'green'" size="small" class="ms-2">
+                        {{ viewedItem.enfermedad_si_no ? 'Sí' : 'No' }}
+                    </v-chip>
+                </v-col>
+                <v-col cols="12">
+                    <span class="font-weight-medium">Especificación:</span> {{ viewedItem.enfermedad_especifique || 'Ninguna especificada' }}
+                </v-col>
+                <v-col cols="12">
+                    <span class="font-weight-medium">Habilidades:</span> {{ viewedItem.habilidades || 'N/A' }}
+                </v-col>
+            </v-row>
+        </v-card-text>
+
+        <v-card-actions class="bg-grey-lighten-3">
+            <v-spacer></v-spacer>
+            <v-btn color="blue-darken-1" variant="text" @click="detailsDialog = false">Cerrar</v-btn>
+        </v-card-actions>
+    </v-card>
+</v-dialog>
 
     <v-data-table
         :headers="headers"
@@ -260,7 +349,7 @@ export default {
             fecha_de_nacimiento: new Date().toISOString().substring(0, 10),
             lugar_de_nacimiento: "",
             genero_del_alumno: null, // M, F, O
-            estado_civil: null,    // S, C, V, D
+            estado_civil: null,    // S, C, V, D
             direccion: "",
             telefono_personal: "",
             telefono_de_emergencia: "",
@@ -413,7 +502,8 @@ export default {
             if (!confirm(`¿Estás seguro de eliminar a ${item.nombre_completo} (NIE: ${item.NIE})?`)) return;
             this.errorMessage = "";
             try {
-                const res = await fetch(`${BASE_URL}/estudiantes.php?nie=${item.NIE}`, { method: "DELETE" });
+                // ✅ CORRECCIÓN 1: Se usa '?id=' en lugar de '?nie=' para DELETE
+                const res = await fetch(`${BASE_URL}/estudiantes.php?id=${item.NIE}`, { method: "DELETE" });
                 
                 if (!res.ok) {
                     const errorBody = await res.json().catch(() => ({ error: 'Error desconocido' }));
@@ -442,7 +532,7 @@ export default {
             
             const itemToSave = { ...this.editedItem };
             
-           
+            
             const nameParts = itemToSave.nombre_completo.trim().split(/\s+/);
             
             if (nameParts.length < 2) {
@@ -463,10 +553,10 @@ export default {
             
             itemToSave.fecha_nacimiento = fechaNac.substring(0, 10);
             
-           
+            
             delete itemToSave.fecha_de_nacimiento; 
 
-          
+            
             itemToSave.seccion_id = parseInt(itemToSave.seccion_id);
             itemToSave.enfermedad_si_no = itemToSave.enfermedad_si_no ? 1 : 0;
             
@@ -475,7 +565,8 @@ export default {
             try {
                 const res = await fetch(
                     this.editedIndex > -1
-                    ? `${BASE_URL}/estudiantes.php?nie=${nieUrl}`
+                    // ✅ CORRECCIÓN 2: Se usa '?id=' en lugar de '?nie=' para PUT
+                    ? `${BASE_URL}/estudiantes.php?id=${nieUrl}`
                     : `${BASE_URL}/estudiantes.php`,
                     {
                         method: this.editedIndex > -1 ? "PUT" : "POST",
